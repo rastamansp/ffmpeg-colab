@@ -48,6 +48,14 @@ spec/
 
 ## Índice de features
 
+### Fase 0 — Validação de navegação (telas dummy, sem backend)
+
+> **Obrigatório antes da Fase A.** Nenhum serviço real (banco, Celery, FFmpeg, IA, YouTube) é necessário. O objetivo é navegar pelo wizard completo com dados hardcoded e validar a UX com o time.
+
+| ID | Feature | Spec |
+|----|---------|------|
+| **P01** | Telas dummy — wizard completo navegável com dados mock | [P01-telas-dummy.md](20-features/P01-telas-dummy.md) |
+
 ### Fase A — pipeline core (MVP)
 
 | ID | Feature | Spec |
@@ -78,6 +86,18 @@ spec/
 Legenda: **Fase A** entrega o pipeline core ponta a ponta · **Fase B** adiciona extensões de conteúdo e integrações externas.
 
 ## Princípios de engenharia
+
+### Fase 0 antes de qualquer serviço
+
+**Sempre criar telas dummy antes de implementar o backend.** O desenvolvimento segue esta ordem obrigatória:
+
+```
+Fase 0 (telas dummy) → aprovação do time → Fase A (serviços reais)
+```
+
+Na Fase 0, todas as views retornam dados Python hardcoded — zero banco, zero Celery, zero IA. O objetivo é validar a navegação e o UX antes de qualquer investimento em infraestrutura. Ver [P01-telas-dummy.md](20-features/P01-telas-dummy.md).
+
+---
 
 ### Spec Driven Design (SDD)
 
