@@ -40,9 +40,9 @@ class StartMergeJobUseCase:
     def execute(self, project_id: str, source_ids: list[str]) -> Job: ...
 ```
 
-### shadcn/ui (frontend)
+### daisyUI (frontend)
 
-Todos os componentes UI base vêm do shadcn/ui (`npx shadcn-ui add`). Nenhuma biblioteca de UI concorrente (MUI, Ant Design, Chakra). Ver [frontend-architecture.md](../40-architecture/frontend-architecture.md#design-system--shadcnui).
+Todos os componentes UI base vêm do **daisyUI** (plugin Tailwind). Nenhuma biblioteca React de UI (MUI, Ant Design, Chakra, shadcn/ui). Ver [frontend-architecture.md](../40-architecture/frontend-architecture.md).
 
 ### design.md — fonte de verdade visual
 
@@ -52,8 +52,8 @@ Toda decisão de aparência (cor, espaçamento, ícone, comportamento de compone
 
 ```
 gwan-studio/
-├── backend/                     # Django 5.2 LTS — api-studio.gwan.cloud
-│   ├── config/                  # settings, urls, asgi, wsgi
+├── backend/                     # Django 5.2 LTS — studio.gwan.cloud (HTML + API + WS)
+│   ├── config/                  # settings, urls, asgi
 │   │   ├── settings/
 │   │   │   ├── base.py
 │   │   │   ├── development.py
@@ -72,23 +72,28 @@ gwan-studio/
 │   │   └── publish/
 │   ├── infrastructure/          # adapters concretos
 │   │   ├── storage/             # MinIO adapter (boto3)
-│   │   ├── ai/                  # Claude Vision + Text adapter (anthropic SDK)
-│   │   ├── youtube/             # YouTube Data API v3 adapter (google-api-python-client)
+│   │   ├── ai/                  # Claude Vision + Text (anthropic SDK)
+│   │   ├── youtube/             # YouTube Data API v3 (google-api-python-client)
 │   │   ├── ffmpeg/              # FFmpeg adapter (ffmpeg-python / subprocess)
 │   │   └── orm/                 # Django ORM models + repositories
-│   ├── presentation/            # Django apps (views, serializers, consumers WS)
-│   │   ├── projects/            # app Django: views DRF + urls
+│   ├── presentation/            # views HTML + API DRF + Channels WS
+│   │   ├── views/               # Django views → HTML (Django Templates)
+│   │   ├── api/                 # DRF ViewSets → JSON (usados pelo HTMX e clientes externos)
+│   │   └── ws/                  # Django Channels consumers (envia HTML parcial via WS)
+│   ├── templates/               # Django Templates (server-side rendering)
+│   │   ├── base.html
+│   │   ├── components/          # partials reutilizáveis (_job_status, _job_log…)
+│   │   ├── projects/
 │   │   ├── sources/
-│   │   ├── jobs/
-│   │   ├── thumbnails/
+│   │   ├── merge/
+│   │   ├── export/
+│   │   ├── thumbnail/
 │   │   ├── seo/
-│   │   ├── publish/
-│   │   └── ws/                  # Django Channels consumers
+│   │   └── publish/
+│   ├── static/                  # arquivos estáticos
+│   │   ├── js/                  # htmx.min.js, htmx-ext-ws.js, alpine.min.js
+│   │   └── css/                 # app.css (Tailwind + daisyUI compilados)
 │   ├── tasks/                   # Celery tasks (chamam use cases)
-│   │   ├── merge.py
-│   │   ├── export.py
-│   │   ├── thumbnail.py
-│   │   └── publish.py
 │   ├── requirements/
 │   │   ├── base.txt
 │   │   ├── development.txt
@@ -96,16 +101,7 @@ gwan-studio/
 │   ├── manage.py
 │   └── Dockerfile
 │
-├── frontend/                    # React 18 + Vite — studio.gwan.cloud
-│   ├── src/
-│   │   ├── features/
-│   │   ├── components/
-│   │   ├── hooks/
-│   │   └── lib/
-│   ├── Dockerfile
-│   └── package.json
-│
-├── docker-compose.yml           # dev local (+ Celery worker)
+├── docker-compose.yml           # dev local (app + celery-worker)
 └── .env.example
 ```
 
@@ -115,11 +111,11 @@ gwan-studio/
 |----|-----------|
 | REQ-F00-01 | Django 5.2 LTS com DRF 3.x e Django Channels 4.x (ASGI) |
 | REQ-F00-02 | Celery 5 + Redis como broker de tasks |
-| REQ-F00-03 | TypeScript strict no frontend (React 18 + Vite) |
-| REQ-F00-04 | Dockerfile backend: `python:3.12-slim` com ffmpeg instalado |
-| REQ-F00-05 | Dockerfile frontend: multi-stage `node:20-alpine` → `nginx:alpine` |
+| REQ-F00-03 | Templates Django em `backend/templates/`; arquivos estáticos em `backend/static/` |
+| REQ-F00-04 | Dockerfile único: `python:3.12-slim` com ffmpeg + `collectstatic` na build |
+| REQ-F00-05 | `whitenoise[brotli]` serve estáticos em produção (sem nginx separado) |
 | REQ-F00-06 | Health check `GET /api/health/` retornando `{ "status": "ok" }` |
-| REQ-F00-07 | Portas slot 18: API Gunicorn/Uvicorn `3018`, Web `5191` no dev local |
+| REQ-F00-07 | Porta slot 18: Daphne em `3018` (HTML + API + WebSocket unificados) |
 | REQ-F00-08 | Django migrations para todos os models |
 | REQ-F00-09 | `docs/spec/40-architecture/design.md` existe e é consultado antes de qualquer trabalho de UI |
 
@@ -141,6 +137,8 @@ ffmpeg-python==0.2.*
 Pillow==10.*
 cryptography==42.*
 python-decouple==3.*
+django-htmx==1.*
+whitenoise[brotli]==6.*
 ```
 
 ## Variáveis de ambiente necessárias (.env)

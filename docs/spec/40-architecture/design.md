@@ -16,7 +16,7 @@ Regras de design visual e de experiência do usuário. Todo trabalho de frontend
 | Cor de texto muted | `#71717A` (zinc-500) | labels secundários, metadados |
 | Background base | `#FAFAFA` (zinc-50) | fundo da app (modo claro) |
 
-> Todos os tokens são mapeados em variáveis CSS HSL via `tailwind.config.ts` para compatibilidade com shadcn/ui (dark mode automático via `class="dark"`).
+> Todos os tokens são configurados no `tailwind.config.js` via daisyUI theme `gwan`. Dark mode automático via `data-theme="gwan-dark"` (daisyUI) ou `class="dark"` (Tailwind).
 
 ---
 
@@ -43,72 +43,109 @@ Regras de design visual e de experiência do usuário. Todo trabalho de frontend
 
 ---
 
-## Componentes — regras de uso (shadcn/ui)
+## Componentes — regras de uso (daisyUI)
+
+> daisyUI é um plugin Tailwind — os componentes são **classes CSS**, sem JS de terceiro. Funcionam em qualquer template Django.
 
 ### Button
 
-| Variante | Quando usar |
-|----------|-------------|
-| `default` | ação primária de um step (Merge, Exportar, Publicar) |
-| `outline` | ação secundária ou opcional |
-| `ghost` | ações em listas/tabelas (editar, remover) |
-| `destructive` | ações irreversíveis (excluir projeto, revogar OAuth) |
+```html
+<!-- ação primária -->
+<button class="btn btn-primary">Iniciar Merge</button>
 
-- Botão de ação principal: **um por seção**, alinhado à direita.
-- Estado de loading: sempre `disabled` + spinner (nunca duplo clique).
+<!-- ação secundária -->
+<button class="btn btn-outline">Ver detalhes</button>
+
+<!-- ação em lista (ghost) -->
+<button class="btn btn-ghost btn-sm">Editar</button>
+
+<!-- ação irreversível -->
+<button class="btn btn-error">Excluir projeto</button>
+```
+
+- Botão de ação principal: **um por seção**, alinhado à direita com `flex justify-end`.
+- Estado de loading: `<button class="btn btn-primary loading">` — nunca duplo clique (usar `hx-disabled-elt="this"` no HTMX).
 
 ### Card
 
-Wrapper padrão de cada step do wizard:
-
-```tsx
-<Card>
-  <CardHeader>
-    <CardTitle>Step 2 — Merge</CardTitle>
-    <CardDescription>Ordene os clipes e inicie o merge.</CardDescription>
-  </CardHeader>
-  <CardContent>
-    {/* conteúdo */}
-  </CardContent>
-</Card>
+```html
+<div class="card bg-base-100 shadow-sm border border-base-200">
+  <div class="card-body">
+    <h2 class="card-title">Step 2 — Merge</h2>
+    <p class="text-sm text-base-content/70">Ordene os clipes e inicie o merge.</p>
+    <!-- conteúdo -->
+  </div>
+</div>
 ```
 
 ### Badge (status de Job)
 
-| Status | Variante | Ícone |
-|--------|----------|-------|
-| `pending` | `outline` | ⏳ |
-| `running` | `secondary` (azul suave) | ⟳ (spin) |
-| `done` | `default` (verde) | ✓ |
-| `failed` | `destructive` | ✗ |
+| Status | Classe daisyUI | Ícone |
+|--------|---------------|-------|
+| `pending` | `badge badge-outline` | ⏳ |
+| `running` | `badge badge-info` | ⟳ (classe `animate-spin`) |
+| `done` | `badge badge-success` | ✓ |
+| `failed` | `badge badge-error` | ✗ |
+
+```html
+<span class="badge badge-success">✓ Concluído</span>
+```
 
 ### Progress
 
-- Usado para upload de footage e progresso de FFmpeg.
-- Sempre acompanhado de texto descritivo (`"Enviando 3 de 5 arquivos..."`).
+```html
+<progress class="progress progress-primary w-full" value="60" max="100"></progress>
+<p class="text-xs text-base-content/70 mt-1">Enviando 3 de 5 arquivos...</p>
+```
 
-### Toast
+### Toast (alerts)
 
-- Sucesso: `toast({ title: "Merge concluído", variant: "default" })` — dura 4 s, dismissível.
-- Erro: `toast({ title: "Falhou", description: err.message, variant: "destructive" })` — dura 8 s.
-- Nunca usar `alert()` nativo.
+```html
+<!-- via Django messages framework + include no base.html -->
+<div class="alert alert-success">
+  <span>Merge concluído com sucesso.</span>
+</div>
 
-### Dialog
+<div class="alert alert-error">
+  <span>{{ message }}</span>
+</div>
+```
 
-- Confirmações de ação irreversível (exclusão, revogação OAuth): Dialog com dois botões (`Cancelar` / `Confirmar`).
-- OAuth flow YouTube: Dialog modal com iframe/redirect.
+Duração controlada por Alpine.js (`x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)"`). Nunca usar `alert()` nativo.
+
+### Modal (Dialog)
+
+```html
+<!-- Confirmação de exclusão -->
+<dialog id="modal-delete" class="modal">
+  <div class="modal-box">
+    <h3 class="font-bold text-lg">Excluir projeto?</h3>
+    <p class="py-4">Esta ação não pode ser desfeita.</p>
+    <div class="modal-action">
+      <form method="dialog"><button class="btn">Cancelar</button></form>
+      <button class="btn btn-error"
+              hx-delete="{% url 'projects:delete' project.id %}"
+              hx-target="body">Confirmar</button>
+    </div>
+  </div>
+</dialog>
+<button class="btn btn-ghost btn-sm"
+        onclick="document.getElementById('modal-delete').showModal()">
+  Excluir
+</button>
+```
 
 ---
 
 ## Wizard de projeto (UX)
 
-O detalhe de um projeto é dividido em **6 steps lineares** via `Tabs` do shadcn/ui. Regras:
+O detalhe de um projeto é dividido em **6 steps lineares** via tabs daisyUI. Regras:
 
-1. Cada tab tem um **indicador de status** (badge ao lado do título).
-2. Tab bloqueada: `disabled`, cursor `not-allowed`, badge `outline`.
+1. Cada tab tem um **badge de status** ao lado do título.
+2. Tab bloqueada: atributo `disabled`, cursor `not-allowed`, badge `badge-outline`.
 3. Tab ativa: sem `disabled`, badge condizente com status do job.
-4. Navegação: o usuário pode **revisitar** steps concluídos (tabs não bloqueadas retroativamente).
-5. Progresso do job exibido em `JobLogStream` — terminal scrollável fixo em `h-48`, fundo `bg-zinc-950 text-zinc-100 font-mono text-xs`.
+4. Navegação: o usuário pode **revisitar** steps concluídos.
+5. Progresso do job exibido em terminal scrollável: `h-48 overflow-y-auto bg-base-300 font-mono text-xs p-4`.
 
 ---
 
@@ -161,7 +198,7 @@ import { Upload, Merge, Download, Wand2, Youtube, CheckCircle2 } from 'lucide-re
 
 - ❌ Cores hardcoded (`#fff`, `rgb(...)`) — usar tokens Tailwind.
 - ❌ Estilos inline (`style={{ color: 'red' }}`) — usar classes Tailwind.
-- ❌ Componentes MUI, Ant Design, Chakra — **apenas shadcn/ui**.
+- ❌ Componentes MUI, Ant Design, Chakra, shadcn/ui — **apenas daisyUI** (sem React).
 - ❌ `alert()`, `confirm()`, `prompt()` nativos — usar Dialog/Toast.
 - ❌ Imagens sem `alt`.
 - ❌ Botão primário desabilitado sem feedback visual (tooltip ou mensagem explicando por que).

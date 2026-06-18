@@ -27,7 +27,7 @@ Esta documentação descreve **comportamento**, **contratos** e **arquitetura** 
 | Stakeholder / PO | [00-overview/product-vision.md](00-overview/product-vision.md) |
 | Engenheiro novo | [00-overview/system-context.md](00-overview/system-context.md) → [10-domain/domain-model.md](10-domain/domain-model.md) |
 | Implementando a API | [40-architecture/backend-architecture.md](40-architecture/backend-architecture.md) → [20-features/](20-features/) F01–F09 |
-| Implementando a Web | [40-architecture/frontend-architecture.md](40-architecture/frontend-architecture.md) → F01, F05, F06, F07 |
+| Implementando a Web | [40-architecture/frontend-architecture.md](40-architecture/frontend-architecture.md) → Django Templates + HTMX, F01, F05, F06, F07 |
 | Design visual / UX | [40-architecture/design.md](40-architecture/design.md) — tokens, componentes, wizard, a11y |
 | Contratos REST/WS | [30-contracts/api-contracts.md](30-contracts/api-contracts.md) |
 | Deploy / infra | [40-architecture/deployment-architecture.md](40-architecture/deployment-architecture.md) |
@@ -123,11 +123,16 @@ StartPublishJob
 
 Use cases são **framework-agnostic**: testados com `unittest.mock`, sem banco, sem HTTP, sem FFmpeg real.
 
-### shadcn/ui + design.md (frontend)
+### Django Templates + HTMX + daisyUI + design.md (frontend)
 
-Componentes UI construídos sobre **shadcn/ui** — biblioteca baseada em Radix UI + Tailwind CSS. Permite customização total sem override de estilos de terceiros. Acessibilidade ARIA garantida pelos primitivos Radix. Componentes vivem em `frontend/src/components/ui/` e são instalados via `npx shadcn-ui add <component>` (copiados no repo, não dependência opaca).
+O frontend é **server-side rendering nativo Django**. Sem React, sem Vite, sem Node.js em produção.
 
-**Todas as regras de design estão em [`40-architecture/design.md`](40-architecture/design.md)**: paleta, tipografia, espaçamento, padrões de componentes, responsividade, acessibilidade e dark mode. Nenhuma decisão visual deve ser tomada sem consultar esse arquivo.
+- **Django Templates** — HTML gerado pelo servidor, sem SPA.
+- **HTMX 2.x** — interatividade via atributos HTML (`hx-post`, `hx-get`, `hx-swap`); extensão `ws` para WebSocket em tempo real.
+- **Alpine.js 3.x** — estado local mínimo no browser (drag-and-drop, toggles).
+- **daisyUI 4.x** — componentes Tailwind sem JS (`btn`, `card`, `badge`, `modal`).
+
+**Todas as regras de design estão em [`40-architecture/design.md`](40-architecture/design.md)**: paleta, tipografia, espaçamento, padrões de componentes daisyUI, responsividade, acessibilidade e dark mode. Nenhuma decisão visual deve ser tomada sem consultar esse arquivo.
 
 ---
 
@@ -150,7 +155,7 @@ Componentes UI construídos sobre **shadcn/ui** — biblioteca baseada em Radix 
 | Versão do SDD | 0.2.0 |
 | Data | 2026-06-17 |
 | Status | Draft — Fase A (pipeline core). Repositório de código a criar. |
-| Stack Fase A | **Django 5.2 LTS** (Clean Architecture) · DRF 3.x · Django Channels 4.x · Celery 5 + Redis · React 18 + Vite + TS (strict) · Tailwind + shadcn/ui · Claude API (Vision + Text) · FFmpeg (subprocess/ffmpeg-python) · Google OAuth 2.0 / YouTube Data API v3 · MinIO (boto3/minio-py) · PostgreSQL |
+| Stack Fase A | **Django 5.2 LTS** (Clean Architecture) · DRF 3.x · Django Channels 4.x · Celery 5 + Redis · **Django Templates + HTMX 2.x + Alpine.js + daisyUI** · Claude API (Vision + Text) · FFmpeg (subprocess/ffmpeg-python) · Google OAuth 2.0 / YouTube Data API v3 · MinIO (boto3) · PostgreSQL · WhiteNoise |
 
 ### Changelog
 

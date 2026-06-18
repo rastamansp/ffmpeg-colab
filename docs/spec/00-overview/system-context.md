@@ -6,9 +6,9 @@
 flowchart LR
     user([Criador\nde conteúdo])
     subgraph studio[Gwan Studio]
-      web[Web SPA\nstudio.gwan.cloud]
-      api[API NestJS\napi-studio.gwan.cloud]
-      worker[FFmpeg Worker\n+ AI pipeline]
+      web[Browser\nDjango Templates + HTMX]
+      api[App Django\nstudio.gwan.cloud]
+      worker[Celery Worker\nFFmpeg + AI pipeline]
     end
     claude[(Anthropic\nClaude API)]
     youtube[(YouTube\nData API v3)]
@@ -32,8 +32,7 @@ flowchart LR
 
 | Container | Tecnologia | Responsabilidade | Domínio |
 |-----------|-----------|------------------|---------|
-| **Web** | React 18 + Vite + TS + shadcn/ui | Upload de footage, gerenciamento de projeto, acompanhamento de jobs, aprovação de thumbnails, SEO editor, publicação | `studio.gwan.cloud` |
-| **API** | **Django 5.2 LTS** + DRF 3.x + Django Channels 4.x (ASGI) | Projetos, sources, jobs, thumbnails, SEO, publicação YouTube; despacha tasks Celery; repassa eventos via WebSocket | `api-studio.gwan.cloud` |
+| **App** | **Django 5.2 LTS** + DRF 3.x + Django Channels 4.x (ASGI) · Django Templates + HTMX 2.x + Alpine.js + daisyUI | Serve HTML (templates), REST `/api/`, WebSocket `/ws/`; projetos, sources, jobs, thumbnails, SEO, publicação YouTube; despacha tasks Celery | `studio.gwan.cloud` |
 | **Celery Worker** | Celery 5 + ffmpeg-python / subprocess | Executa jobs pesados (merge, export, frames, thumbnails, upload YouTube) — processo separado, sem bloquear a API | container `celery-worker` |
 | **Redis** | Redis 7 (infra GWAN compartilhada) | Broker Celery + channel layer Django Channels (pub/sub WebSocket) | `cache.gwan.cloud` |
 | **Claude** | Anthropic API (externo) | Vision: analisa frames e planeja layout de thumbnail. Text: gera título, descrição e tags SEO | `ANTHROPIC_API_KEY` — só no backend |
@@ -54,7 +53,7 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
-    participant W as Web SPA
+    participant W as Browser (HTMX)
     participant A as API (Django/DRF)
     participant Wk as Celery Worker
     participant C as Claude
@@ -108,7 +107,7 @@ sequenceDiagram
 
 ## Ambientes
 
-| Ambiente | Web | API | Worker | MinIO | Claude/YouTube |
-|----------|-----|-----|--------|-------|----------------|
-| **Dev local** (slot 18) | `localhost:5191` | `localhost:3018/api` | processo local (ffmpeg no PATH) | infra compartilhada ou MinIO local | chaves dev |
-| **Produção** | `studio.gwan.cloud` | `api-studio.gwan.cloud/api` | worker dedicado | `s3.gwan.cloud` (bucket `studio`) | chaves prod |
+| Ambiente | App (HTML + API + WS) | Worker | MinIO | Claude/YouTube |
+|----------|-----------------------|--------|-------|----------------|
+| **Dev local** (slot 18) | `localhost:3018` (Daphne) | processo local (ffmpeg no PATH) | infra compartilhada ou MinIO local | chaves dev |
+| **Produção** | `studio.gwan.cloud` (HTML em `/`, API em `/api/`, WS em `/ws/`) | worker dedicado | `s3.gwan.cloud` (bucket `studio`) | chaves prod |

@@ -4,11 +4,12 @@
 
 | Ferramenta | Versão mínima | Motivo |
 |-----------|--------------|--------|
-| Python | 3.12 | backend Django |
-| Node.js | 20 LTS | frontend Vite |
+| Python | 3.12 | backend Django + templates |
 | ffmpeg | 6+ | worker local |
 | Docker | 24+ | banco + Redis + MinIO local |
 | git | qualquer | clone |
+
+> **Node.js não é necessário.** Frontend é servido pelo Django (templates + static). Tailwind em dev pode ser carregado via CDN no `base.html`.
 
 > **Windows sem ffmpeg no PATH:** use o container docker para dev:
 > `docker run --rm -v "$(pwd):/work" -w /work jrottenberg/ffmpeg:6-alpine <args>`
@@ -37,19 +38,17 @@ pip install -r requirements/development.txt
 python manage.py migrate
 python manage.py create_studio_bucket  # management command customizado
 
-# 6. Inicia API (Daphne/ASGI para Channels)
-python manage.py runserver 3018  # ou: daphne -p 3018 config.asgi:application
+# 6. Inicia app Django (HTML + API + WebSocket em :3018)
+python manage.py runserver 3018
+# Acesse http://localhost:3018 — Django serve HTML, API e estáticos
 
 # 7. Em outro terminal: Celery worker
 cd gwan-studio/backend
 .\.venv\Scripts\Activate.ps1
 celery -A config worker --loglevel=info
-
-# 8. Em outro terminal: Frontend
-cd gwan-studio/frontend
-npm install
-npm run dev  # Vite em :5191
 ```
+
+> **Sem etapa de frontend separada.** Os templates Django são servidos pelo `runserver`. HTMX, Alpine.js e Tailwind são carregados via CDN em `base.html` no modo `DEBUG=True` (sem build step).
 
 ## Variáveis de ambiente (backend/.env)
 
@@ -79,6 +78,7 @@ ANTHROPIC_API_KEY=sk-ant-xxx
 GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=xxx
 OAUTH_REDIRECT_URI=http://localhost:3018/api/oauth/youtube/callback/
+STATICFILES_STORAGE=whitenoise.storage.CompressedManifestStaticFilesStorage
 OAUTH_ENCRYPTION_KEY=<32-byte-hex-gerado-com: python -c "import secrets; print(secrets.token_hex(32))">
 
 # Servidor
@@ -122,8 +122,7 @@ services:
 
 | Serviço | Porta |
 |---------|-------|
-| API Django (Daphne/Uvicorn) | `3018` |
-| Web Vite | `5191` |
+| App Django (HTML + API + WS) | `3018` |
 | PostgreSQL isolado | `5451` |
 | Redis isolado | `6398` |
 
